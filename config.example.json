@@ -1,1 +1,10 @@
-{}
+{
+  "login": {
+    "username": "",
+    "password": ""
+  },
+  "browser": {
+    "headless": false
+  },
+  "timeout": 10
+}
