@@ -67,17 +67,25 @@ def flow_get_all_groups(driver, config):
 def flow_get_all_topics_for_group(driver, config, group):
     """Get all the topics in the group on the site."""
     topics = []
-    logging.debug(f'Navigating to group page for {group}')
-    driver.get(f'https://tildes.net/{group}?order=new&period=all')
-    soup = BeautifulSoup(driver.page_source, features='html.parser')
-    logging.debug('Parsing out topics')
-    for article_ele in soup.find_all('article', class_='topic'):
-        title = article_ele.find('a').text
-        tags = [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
-        topics.append({
-            'title': title,
-            'tags': tags
-        })
+    logging.debug(f'Navigating to first topic listing for group {group}')
+    driver.get(f'https://tildes.net/{group}?order=new&period=all&per_page=100')
+    while True:
+        soup = BeautifulSoup(driver.page_source, features='html.parser')
+        logging.debug('Parsing out topics')
+        for article_ele in soup.find_all('article', class_='topic'):
+            title = article_ele.find('a').text
+            tags = [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
+            topics.append({
+                'title': title,
+                'tags': tags
+            })
+        logging.debug('Checking for more pages of topics')
+        if config['browser']['nav_next'] and soup.find('a', id='next-page'):
+            logging.info(f'Navigating to next page in {group}')
+            driver.find_element_by_id('next-page').click()
+        else:
+            logging.info(f'No more topics in {group}')
+            break
     return topics
 
 
