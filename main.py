@@ -2,6 +2,7 @@ import logging
 import json
 import os
 
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -65,10 +66,18 @@ def flow_get_all_groups(driver, config):
 
 def flow_get_all_topics_for_group(driver, config, group):
     """Get all the topics in the group on the site."""
-    driver.get(f'https://tildes.net/{group}?order=new&period=all')
     topics = []
-    for ele in driver.find_elements_by_xpath('//h1[contains(@class, "topic-title")]/a'):
-        topics.append(ele.text)
+    logging.debug(f'Navigating to group page for {group}')
+    driver.get(f'https://tildes.net/{group}?order=new&period=all')
+    soup = BeautifulSoup(driver.page_source, features='html.parser')
+    logging.debug('Parsing out topics')
+    for article_ele in soup.find_all('article', class_='topic'):
+        title = article_ele.find('a').text
+        tags = [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
+        topics.append({
+            'title': title,
+            'tags': tags
+        })
     return topics
 
 
