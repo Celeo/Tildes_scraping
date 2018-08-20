@@ -1,5 +1,6 @@
 import logging
 import json
+from time import sleep
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -72,9 +73,11 @@ def flow_store_all_topics_for_group(driver, config, group):
                 group,
                 article_ele.find('a').text,
                 article_ele.find('a')['href'],
+                article_ele.find('div', class_='topic-info-comments').find('a')['href'],
                 content,
                 [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
             )
+        pause(1)
         logging.debug('Checking for more pages of topics')
         if config['browser']['nav_next'] and soup.find('a', id='next-page'):
             logging.info(f'Navigating to next page in {group}')
@@ -84,8 +87,14 @@ def flow_store_all_topics_for_group(driver, config, group):
             break
 
 
+def pause(duration):
+    """Sleep for the duration."""
+    logging.debug(f'Waiting for {duration} seconds')
+    sleep(duration)
+
+
 def main():
-    """Main processing."""
+    """Main processing control and loop."""
     driver = None
     try:
         logging.info('Setting up')
@@ -98,6 +107,7 @@ def main():
         for group in group_names:
             logging.info(f'Getting topics in {group}')
             flow_store_all_topics_for_group(driver, config, group)
+            pause(5)
         logging.info('Closing down the browser')
         driver.quit()
     finally:
