@@ -70,6 +70,7 @@ def flow_get_all_topics_for_group(driver, config, group):
     logging.debug(f'Navigating to first topic listing for group {group}')
     driver.get(f'https://tildes.net/{group}?order=new&period=all&per_page=100')
     while True:
+        # it's way faster to use bs4 than to use the browser functions to find things on the page
         soup = BeautifulSoup(driver.page_source, features='html.parser')
         logging.debug('Parsing out topics')
         for article_ele in soup.find_all('article', class_='topic'):

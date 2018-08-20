@@ -2,5 +2,5 @@ env
 *.pyc
 __pycache__
 config.json
-data_output.json
+data.db
 .vscode
