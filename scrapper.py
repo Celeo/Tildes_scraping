@@ -38,6 +38,7 @@ def wait_for_title(driver, config, title):
 
 def flow_login(driver, config):
     """Perform the login flow."""
+    logging.info('Logging in')
     driver.get('https://tildes.net/login')
     driver.find_element_by_id('username').send_keys(config['login']['username'])
     driver.find_element_by_id('password').send_keys(config['login']['password'])
@@ -97,8 +98,6 @@ def main():
         for group in group_names:
             logging.info(f'Getting topics in {group}')
             flow_store_all_topics_for_group(driver, config, group)
-        logging.info('Saving collected data')
-
         logging.info('Closing down the browser')
         driver.quit()
     finally:
