@@ -1,15 +1,14 @@
 import logging
 import json
-import os
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from constants import CONFIG_FILE_NAME
+from db import make_tables, record_topic
 
-CONFIG_FILE_NAME = 'config.json'
-OUTPUT_FILE_NAME = 'data_output.json'
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%I:%M:%S')
 
@@ -18,15 +17,6 @@ def load_config():
     """Load and return the config from file."""
     with open(CONFIG_FILE_NAME) as f:
         return json.load(f)
-
-
-def save_to_file(data):
-    """Save the data to the output data file."""
-    if os.path.exists(OUTPUT_FILE_NAME):
-        logging.debug('Deleting existing data output file')
-        os.remove(OUTPUT_FILE_NAME)
-    with open(OUTPUT_FILE_NAME, 'w') as f:
-        json.dump(data, f, indent=2)
 
 
 def create_driver(config):
@@ -64,9 +54,8 @@ def flow_get_all_groups(driver, config):
     return groups
 
 
-def flow_get_all_topics_for_group(driver, config, group):
+def flow_store_all_topics_for_group(driver, config, group):
     """Get all the topics in the group on the site."""
-    topics = []
     logging.debug(f'Navigating to first topic listing for group {group}')
     driver.get(f'https://tildes.net/{group}?order=new&period=all&per_page=100')
     while True:
@@ -74,12 +63,17 @@ def flow_get_all_topics_for_group(driver, config, group):
         soup = BeautifulSoup(driver.page_source, features='html.parser')
         logging.debug('Parsing out topics')
         for article_ele in soup.find_all('article', class_='topic'):
-            title = article_ele.find('a').text
-            tags = [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
-            topics.append({
-                'title': title,
-                'tags': tags
-            })
+            content = None
+            if article_ele.find('details', class_='topic-text-excerpt'):
+                content = '\n'.join([e.text for e in article_ele.find('details', class_='topic-text-excerpt').find_all('p')])
+            record_topic(
+                article_ele['id'].split('-')[1],
+                group,
+                article_ele.find('a').text,
+                article_ele.find('a')['href'],
+                content,
+                [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
+            )
         logging.debug('Checking for more pages of topics')
         if config['browser']['nav_next'] and soup.find('a', id='next-page'):
             logging.info(f'Navigating to next page in {group}')
@@ -87,7 +81,6 @@ def flow_get_all_topics_for_group(driver, config, group):
         else:
             logging.info(f'No more topics in {group}')
             break
-    return topics
 
 
 def main():
@@ -96,16 +89,16 @@ def main():
     try:
         logging.info('Setting up')
         config = load_config()
+        make_tables()
         driver = create_driver(config)
         flow_login(driver, config)
-        data = {}
         logging.info('Getting all group names')
-        data['group_names'] = flow_get_all_groups(driver, config)
-        for group in data['group_names']:
+        group_names = flow_get_all_groups(driver, config)
+        for group in group_names:
             logging.info(f'Getting topics in {group}')
-            data[group] = {'topics': flow_get_all_topics_for_group(driver, config, group)}
+            flow_store_all_topics_for_group(driver, config, group)
         logging.info('Saving collected data')
-        save_to_file(data)
+
         logging.info('Closing down the browser')
         driver.quit()
     finally:
