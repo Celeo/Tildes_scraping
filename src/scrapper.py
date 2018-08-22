@@ -1,27 +1,18 @@
 import logging
-import json
 from time import sleep
+from typing import Dict, List
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from constants import CONFIG_FILE_NAME
-from db import make_tables, record_topic
+from .db import record_topic
 
 
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(message)s', datefmt='%I:%M:%S')
-
-
-def load_config():
-    """Load and return the config from file."""
-    with open(CONFIG_FILE_NAME) as f:
-        return json.load(f)
-
-
-def create_driver(config):
-    """Create, configure, and return the driver."""
+def create_driver(config: Dict) -> WebDriver:
+    """Create, configure, and return WebDriver driver."""
     chrome_options = webdriver.ChromeOptions()
     if config['browser']['headless']:
         logging.debug('Adding headless argument to Chrome options')
@@ -32,12 +23,7 @@ def create_driver(config):
     return driver
 
 
-def wait_for_title(driver, config, title):
-    """Wait for the driver's page's title to be the passed value."""
-    WebDriverWait(driver, config['timeout']).until(EC.title_is(title))
-
-
-def flow_login(driver, config):
+def flow_login(driver: WebDriver, config: Dict) -> None:
     """Perform the login flow."""
     logging.info('Logging in')
     driver.get('https://tildes.net/login')
@@ -46,10 +32,10 @@ def flow_login(driver, config):
     driver.find_element_by_xpath('/html/body/main/form/div[4]/button').click()
     # Can't just click the submit button; have to actually wait for the form to submit
     # and the next page to arrive, as determined by the driver's current title.
-    wait_for_title(driver, config, 'Tildes')
+    WebDriverWait(driver, config['timeout']).until(EC.title_is('Tildes'))
 
 
-def flow_get_all_groups(driver, config):
+def flow_get_all_groups(driver: WebDriver, config: Dict) -> List[str]:
     """Get all the groups on the site."""
     driver.get('https://tildes.net/groups')
     groups = []
@@ -58,9 +44,9 @@ def flow_get_all_groups(driver, config):
     return groups
 
 
-def flow_store_all_topics_for_group(driver, config, group):
-    """Get all the topics in the group on the site."""
-    logging.debug(f'Navigating to first topic listing for group {group}')
+def flow_store_all_topics_for_group(driver: WebDriver, config: Dict, group: str) -> None:
+    """Records all the topics in the group on the site."""
+    logging.debug(f'Gettings topics in {group}')
     driver.get(f'https://tildes.net/{group}?order=new&period=all&per_page=100')
     while True:
         # it's way faster to use bs4 than to use the browser functions to find things on the page
@@ -86,36 +72,32 @@ def flow_store_all_topics_for_group(driver, config, group):
         else:
             logging.info(f'No more topics in {group}')
             break
-        pause(1)
+        driver_pause(1)
 
 
-def pause(duration):
+def driver_pause(duration: int) -> None:
     """Sleep for the duration."""
     logging.debug(f'Waiting for {duration} seconds')
     sleep(duration)
 
 
-def main():
-    """Main processing control and loop."""
-    driver = None
-    try:
-        logging.info('Setting up')
-        config = load_config()
-        make_tables()
-        driver = create_driver(config)
-        flow_login(driver, config)
-        logging.info('Getting all group names')
-        group_names = flow_get_all_groups(driver, config)
-        for group in group_names:
-            logging.info(f'Getting topics in {group}')
-            flow_store_all_topics_for_group(driver, config, group)
-            pause(5)
-        logging.info('Closing down the browser')
-        driver.quit()
-    finally:
-        if driver:
-            driver.quit()
-
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     """Main processing control and loop."""
+#     driver = None
+#     try:
+#         logging.info('Setting up')
+#         config = load_config()
+#         make_tables()
+#         driver = create_driver(config)
+#         flow_login(driver, config)
+#         logging.info('Getting all group names')
+#         group_names = flow_get_all_groups(driver, config)
+#         for group in group_names:
+#             logging.info(f'Getting topics in {group}')
+#             flow_store_all_topics_for_group(driver, config, group)
+#             driver_pause(5)
+#         logging.info('Closing down the browser')
+#         driver.quit()
+#     finally:
+#         if driver:
+#             driver.quit()

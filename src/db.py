@@ -1,6 +1,6 @@
 import sqlite3
 
-from constants import DB_FILE_NAME
+from .constants import DB_FILE_NAME
 
 
 connection = sqlite3.connect(DB_FILE_NAME)
