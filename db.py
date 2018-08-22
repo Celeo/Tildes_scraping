@@ -38,16 +38,11 @@ def record_topic(topic_id, group, title, link, comments_link, content, tags):
 
 
 query_insert_to_topics = '''
-INSERT INTO
-    topics
-SELECT
-    ?, ?, ?, ?, ?, ?
+INSERT INTO topics
+SELECT ?, ?, ?, ?, ?, ?
 WHERE NOT EXISTS (
-    SELECT
-        1
-    FROM
-        topics
-    WHERE
-        id = ? AND group_name = ?
+    SELECT 1
+    FROM topics
+    WHERE id = ? AND group_name = ?
 )
 '''
