@@ -44,6 +44,8 @@ def flow_login(driver, config):
     driver.find_element_by_id('username').send_keys(config['login']['username'])
     driver.find_element_by_id('password').send_keys(config['login']['password'])
     driver.find_element_by_xpath('/html/body/main/form/div[4]/button').click()
+    # Can't just click the submit button; have to actually wait for the form to submit
+    # and the next page to arrive, as determined by the driver's current title.
     wait_for_title(driver, config, 'Tildes')
 
 
@@ -77,7 +79,6 @@ def flow_store_all_topics_for_group(driver, config, group):
                 content,
                 [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]
             )
-        pause(1)
         logging.debug('Checking for more pages of topics')
         if config['browser']['nav_next'] and soup.find('a', id='next-page'):
             logging.info(f'Navigating to next page in {group}')
@@ -85,6 +86,7 @@ def flow_store_all_topics_for_group(driver, config, group):
         else:
             logging.info(f'No more topics in {group}')
             break
+        pause(1)
 
 
 def pause(duration):
