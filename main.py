@@ -14,6 +14,7 @@ Options:
 """
 from docopt import docopt
 import logging
+from typing import Dict
 
 from src import load_config
 from src.scrapper import create_driver, flow_login, flow_get_all_groups, flow_store_all_topics_for_group, driver_pause
@@ -24,33 +25,41 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(me
 
 
 def main():
+    """Main method, takes the docopt info and starts processing."""
     args = docopt(__doc__, version='Tildes scrapping utility 1.0')
     config = load_config()
-    driver = None
     make_tables()
 
+    if args['scan_all'] or args['scan_topic'] or args['scan_comments']:
+        do_scan(config, args)
+        return
+
+    logging.error('Unknown request')
+
+
+def do_scan(config: Dict, args: Dict) -> None:
+    """Handling for calling features that scan (scrape) the site."""
     try:
-        if args['scan_all'] or args['scan_topic'] or args['scan_comments']:
-            driver = create_driver(config)
-            flow_login(driver, config)
-            group_names = flow_get_all_groups(driver, config)
-            if args['scan_all']:
-                for group in group_names:
-                    flow_store_all_topics_for_group(driver, config, group)
-                    driver_pause(3)
+        driver = create_driver(config)
+        flow_login(driver, config)
+        group_names = flow_get_all_groups(driver, config)
+        if args['scan_all']:
+            for group in group_names:
+                flow_store_all_topics_for_group(driver, config, group)
+                driver_pause(3)
+            return
+        if args['scan_topic']:
+            if args['<group>'] not in group_names:
+                logging.warning('Group "{}" not found on the site'.format(args['<group>']))
                 return
-            if args['scan_topic']:
-                if args['<group>'] not in group_names:
-                    logging.warning('Group "{}" not found on the site'.format(args['<group>']))
-                    return
-                flow_store_all_topics_for_group(driver, config, args['<group>'])
+            flow_store_all_topics_for_group(driver, config, args['<group>'])
+            return
+        if args['scan_comments']:
+            if args['<group>'] not in group_names:
+                logging.warning('Group "{}" not found on the site'.format(args['<group>']))
                 return
-            if args['scan_comments']:
-                if args['<group>'] not in group_names:
-                    logging.warning('Group "{}" not found on the site'.format(args['<group>']))
-                    return
-                logging.error('Feature not yet implemented')
-                return
+            logging.error('Feature not yet implemented')
+            return
     finally:
         if driver:
             driver.quit()
