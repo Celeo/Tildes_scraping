@@ -79,25 +79,3 @@ def driver_pause(duration: int) -> None:
     """Sleep for the duration."""
     logging.debug(f'Waiting for {duration} seconds')
     sleep(duration)
-
-
-# def main():
-#     """Main processing control and loop."""
-#     driver = None
-#     try:
-#         logging.info('Setting up')
-#         config = load_config()
-#         make_tables()
-#         driver = create_driver(config)
-#         flow_login(driver, config)
-#         logging.info('Getting all group names')
-#         group_names = flow_get_all_groups(driver, config)
-#         for group in group_names:
-#             logging.info(f'Getting topics in {group}')
-#             flow_store_all_topics_for_group(driver, config, group)
-#             driver_pause(5)
-#         logging.info('Closing down the browser')
-#         driver.quit()
-#     finally:
-#         if driver:
-#             driver.quit()
