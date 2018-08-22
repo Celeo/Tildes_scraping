@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tildes scrapping utility
+"""Tildes scraping utility
 
 Usage:
     main.py scan_all [--scan_comments]
@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(me
 
 def main():
     """Main method, takes the docopt info and starts processing."""
-    args = docopt(__doc__, version='Tildes scrapping utility 1.0')
+    args = docopt(__doc__, version='Tildes scraping utility 1.0')
     config = load_config()
     make_tables()
 
