@@ -24,25 +24,41 @@ def make_tables():
         name TEXT NOT NULL,
         FOREIGN KEY (topic_id) REFERENCES topics(id)
     )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS comments (
+        id TEXT PRIMARY KEY,
+        topic_id TEXT NOT NULL,
+        group_name TEXT NOT NULL,
+        author TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        content TEXT NOT NULL,
+        FOREIGN KEY (topic_id) REFERENCES topics(id)
+    )
+    ''')
     connection.commit()
 
 
-def record_topic(topic_id, group, title, link, comments_link, content, tags):
-    """Insert the data into the tables."""
-    cursor.execute(query_insert_to_topics, (topic_id, group, title, link, comments_link, content, topic_id, group))
-    cursor.execute('DELETE FROM tags WHERE topic_id = ? AND group_name = ?', (topic_id, group))
-    connection.commit()
+def record_topic(topic: str, group: str, title: str, link: str, comments_link: str, content: str, tags: str) -> None:
+    """Save topic and tag data."""
+    cursor.execute(query_delete_from_topics, (topic, group))
+    cursor.execute(query_insert_to_topics, (topic, group, title, link, comments_link, content))
+    cursor.execute(query_delete_from_tags, (topic, group))
     for tag in tags:
-        cursor.execute('INSERT INTO tags VALUES (?, ?, ?)', (topic_id, group, tag))
+        cursor.execute(query_insert_to_tags, (topic, group, tag))
     connection.commit()
 
 
-query_insert_to_topics = '''
-INSERT INTO topics
-SELECT ?, ?, ?, ?, ?, ?
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM topics
-    WHERE id = ? AND group_name = ?
-)
-'''
+def record_comment(comment_id, topic: str, group: str, author: str, timestamp: str, content: str) -> None:
+    """Save the comment data."""
+    cursor.execute(query_delete_from_comments, (comment_id, topic, group))
+    cursor.execute(query_insert_to_comments, (comment_id, topic, group, author, timestamp, content))
+    connection.commit()
+
+
+query_delete_from_topics = 'DELETE FROM topics WHERE id = ? AND group_name = ?'
+query_insert_to_topics = 'INSERT INTO topics VALUES (?, ?, ?, ?, ?, ?)'
+
+query_delete_from_tags = 'DELETE FROM tags WHERE topic_id = ? AND group_name = ?'
+query_insert_to_tags = 'INSERT INTO tags VALUES (?, ?, ?)'
+
+query_delete_from_comments = 'DELETE FROM comments WHERE id = ? AND topic_id = ? AND group_name = ?'
+query_insert_to_comments = 'INSERT INTO comments VALUES (?, ?, ?, ?, ?, ?)'

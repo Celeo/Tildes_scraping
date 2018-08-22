@@ -2,22 +2,29 @@
 """Tildes scraping utility
 
 Usage:
-    main.py scan_all [--scan_comments]
-    main.py scan_topic <group> [--scan_comments]
-    main.py scan_comments <group> <topic>
+  main.py scan_all_groups [--scan_comments] [--cookie=<cookie>]
+  main.py scan_group <group> [--scan_comments] [--cookie=<cookie>]
+  main.py scan_topic <group> <topic> [--cookie=<cookie>]
 
 Options:
-    -h --help               Show this screen
-    --version               Show version
-    --no-next               Don't click the next buttons in groups
-    --topic-count=<count>   Set the number of topics to show in a group [1 -> 100, default: 100]
+  -h --help                 Show this screen
+  --version                 Show version
+  --cookie=<cookie>         Use a session cookie instead of logging in
+  --scan_comments           If true, comments will also be scanned during processing of 'scan_all_groups' and 'scan_group'
 """
 from docopt import docopt
 import logging
 from typing import Dict
 
 from src import load_config
-from src.scrapper import create_driver, flow_login, flow_get_all_groups, flow_store_all_topics_for_group, driver_pause
+from src.scrapper import (
+    create_driver,
+    flow_login,
+    set_login_cookie,
+    flow_get_all_groups,
+    flow_store_all_topics_for_group,
+    flow_get_comments_from_topic
+)
 from src.db import make_tables
 
 
@@ -26,11 +33,11 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(me
 
 def main():
     """Main method, takes the docopt info and starts processing."""
-    args = docopt(__doc__, version='Tildes scraping utility 1.0')
+    args = docopt(__doc__, version='Tildes scraping utility 2.0-indev')
     config = load_config()
     make_tables()
 
-    if args['scan_all'] or args['scan_topic'] or args['scan_comments']:
+    if args['scan_all_groups'] or args['scan_group'] or args['scan_topic']:
         do_scan(config, args)
         return
 
@@ -40,25 +47,35 @@ def main():
 def do_scan(config: Dict, args: Dict) -> None:
     """Handling for calling features that scan (scrape) the site."""
     try:
+        # create a driver and get into the site
         driver = create_driver(config)
-        flow_login(driver, config)
+        if args['--cookie']:
+            set_login_cookie(driver, args['--cookie'])
+        else:
+            flow_login(driver, config)
         group_names = flow_get_all_groups(driver, config)
-        if args['scan_all']:
+
+        do_scan_comments_too = args['--scan_comments']
+        # do the scan function
+        if args['scan_all_groups']:
             for group in group_names:
-                flow_store_all_topics_for_group(driver, config, group)
-                driver_pause(3)
+                flow_store_all_topics_for_group(driver, config, group, do_scan_comments_too)
+            return
+        group_to_scan = args['<group>']
+        if group_to_scan[0] != '~':
+            logging.info(f'Correcting group "{group_to_scan}" to "~{group_to_scan}"')
+            group_to_scan = '~' + group_to_scan
+        if args['scan_group']:
+            if group_to_scan not in group_names:
+                logging.warning('Group "{}" not found on the site'.format(group_to_scan))
+                return
+            flow_store_all_topics_for_group(driver, config, group_to_scan, do_scan_comments_too)
             return
         if args['scan_topic']:
-            if args['<group>'] not in group_names:
-                logging.warning('Group "{}" not found on the site'.format(args['<group>']))
+            if group_to_scan not in group_names:
+                logging.warning('Group "{}" not found on the site'.format(group_to_scan))
                 return
-            flow_store_all_topics_for_group(driver, config, args['<group>'])
-            return
-        if args['scan_comments']:
-            if args['<group>'] not in group_names:
-                logging.warning('Group "{}" not found on the site'.format(args['<group>']))
-                return
-            logging.error('Feature not yet implemented')
+            flow_get_comments_from_topic(driver, config, group_to_scan, args['<topic>'])
             return
     finally:
         if driver:
