@@ -85,10 +85,9 @@ def do_scan(config: Dict, args: Dict) -> None:
                 session.add(t)
             return
         if args['scan_topic']:
-            # TODO this won't work yet; have to populate comments with topics relationship
             comments = flow_get_comments_from_topic(driver, config, group_to_scan, args['<topic>'])
             for c in comments:
-                session.add(t)
+                session.add(c)
             return
         if args['scan_comments_in_group']:
             # TODO

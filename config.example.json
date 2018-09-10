@@ -4,8 +4,7 @@
     "password": ""
   },
   "browser": {
-    "headless": false,
-    "nav_next": true
+    "headless": false
   },
   "timeout": 10
 }

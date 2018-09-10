@@ -5,3 +5,4 @@ config.json
 *.db
 .vscode
 .*cache*
+db_bak
