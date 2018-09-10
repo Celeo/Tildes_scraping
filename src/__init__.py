@@ -50,3 +50,20 @@ def pause(duration: int) -> None:
 def timestamp_to_datetime(timestamp: str) -> datetime:
     """Converts a Tildes timestamp to a datetime object."""
     return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+
+
+def get_url(session: requests.Session, url: str) -> requests.Response:
+    """Get a url and wait if blocked."""
+    attempts = 0
+    while True:
+        try:
+            resp = session.get(url)
+            if resp.status_code == 200:
+                return resp
+        except Exception as e:
+            logging.debug(f'Exception hitting {url}: {str(e)}')
+        attempts += 1
+        if attempts == 5:
+            logging.error(f'Could not get {url}, continuous failures')
+        logging.debug('Received non-200 response, waiting 2 seconds')
+        pause(2)

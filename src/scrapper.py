@@ -8,7 +8,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from . import timestamp_to_datetime, pause
+from . import timestamp_to_datetime, pause, get_url
 from .db import Topic, Tag, Comment
 
 
@@ -35,7 +35,7 @@ def flow_get_all_groups(session: requests.Session, config: Dict) -> List[str]:
 def flow_get_all_topics_for_group(session: requests.Session, group: str, all_topics: List) -> None:
     """Record all the topics in the group."""
     logging.info(f'Gettings topics in {group}')
-    resp = session.get(f'https://tildes.net/{group}?order=new&period=all&per_page=100')
+    resp = get_url(session, f'https://tildes.net/{group}?order=new&period=all&per_page=100')
     while True:
         soup = BeautifulSoup(resp.text, features='html.parser')
         logging.debug('Parsing out topics')
@@ -63,7 +63,7 @@ def flow_get_all_topics_for_group(session: requests.Session, group: str, all_top
         if next_page:
             logging.debug(f'Navigating to next page in {group}')
             if next_page:
-                resp = session.get(next_page['href'])
+                resp = get_url(session, next_page['href'])
                 pause(0.5)
         else:
             logging.debug(f'No more topics in {group}')
@@ -77,7 +77,7 @@ def flow_get_comments_from_topics(
     for topic in topics:
         url = f'https://tildes.net/{topic.group}/{topic.tildes_id}'
         logging.info(f'Getting comments from: {url}')
-        resp = session.get(url)
+        resp = get_url(session, url)
         soup = BeautifulSoup(resp.text, features='html.parser')
         logging.debug('Parsing out comments')
         for article in soup.find_all('article', id=re.compile('comment-\w+')):
