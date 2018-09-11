@@ -4,26 +4,30 @@ from typing import Dict, List
 
 from bs4 import BeautifulSoup
 import requests
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from . import timestamp_to_datetime, pause, get_url
 from .db import Topic, Tag, Comment
 
 
-def flow_login(driver: WebDriver, config: Dict) -> None:
-    """Perform the login flow."""
+def flow_login(http_session: requests.Session, config: Dict) -> None:
+    """Perform a login."""
     logging.info('Logging in')
-    driver.get('https://tildes.net/login')
-    driver.find_element_by_id('username').send_keys(config['login']['username'])
-    driver.find_element_by_id('password').send_keys(config['login']['password'])
-    driver.find_element_by_xpath('/html/body/main/form/div[4]/button').click()
-    WebDriverWait(driver, config['timeout']).until(EC.title_is('Tildes'))
+    r = http_session.get('https://tildes.net/login')
+    soup = BeautifulSoup(r.text, 'html.parser')
+    data = {
+        'username': config['login']['username'],
+        'password': config['login']['password'],
+        'csrf_token': soup.find('input', {'name': 'csrf_token'})['value'],
+        'keep': 'on'
+    }
+    headers = {'Referer': 'https://tildes.net/'}
+    r = http_session.post('https://tildes.net/login', data=data, headers=headers)
+    assert r.status_code == 200
 
 
 def flow_get_all_groups(session: requests.Session, config: Dict) -> List[str]:
     """Get all the groups."""
+    logging.info('Getting all groups')
     resp = session.get('https://tildes.net/groups')
     soup = BeautifulSoup(resp.text, features='html.parser')
     groups = []
