@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import requests
 
 from . import timestamp_to_datetime, pause, get_url
-from .db import Topic, Tag, Comment
+from ..db import Topic, Tag, Comment
 
 
 def flow_login(http_session: requests.Session, config: Dict) -> None:
@@ -53,6 +53,7 @@ def flow_get_all_topics_for_group(session: requests.Session, group: str, all_top
                 group=group,
                 title=article_ele.find('a').text,
                 link=article_ele.find('a')['href'],
+                comments_link=article_ele.find('div', class_='topic-info-comments').find('a')['href'],
                 content=content,
                 author=article_ele.find('a', class_='link-user').text,
                 submitted=timestamp_to_datetime(article_ele.find('time')['datetime'])

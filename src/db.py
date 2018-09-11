@@ -24,6 +24,20 @@ class Topic(Base):
     tags = relationship('Tag', back_populates='topic')
     comments = relationship('Comment', back_populates='topic')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tildes_id': self.tildes_id,
+            'group': self.group,
+            'title': self.title,
+            'link': self.link,
+            'content': self.content,
+            'comments_link': self.comments_link,
+            'author': self.author,
+            'submitted': self.submitted,
+            'tags': [tag.name for tag in self.tags]
+        }
+
 
 class Tag(Base):
     __tablename__ = 'tags'
@@ -33,6 +47,11 @@ class Tag(Base):
     name = Column(String)
 
     topic = relationship('Topic', back_populates='tags')
+
+    def to_dict(self):
+        return {
+            'name': self.name
+        }
 
 
 class Comment(Base):
@@ -46,6 +65,15 @@ class Comment(Base):
     content = Column(String)
 
     topic = relationship('Topic', back_populates='comments')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tildes_id': self.tildes_id,
+            'author': self.author,
+            'submitted': self.submitted,
+            'content': self.content
+        }
 
 
 Session = sessionmaker(bind=engine)

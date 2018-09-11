@@ -5,12 +5,12 @@ import os
 import sys
 from threading import Thread
 
-from src import (
+from src.scrapper import (
     load_config,
     create_http_session,
     pause
 )
-from src.scrapper import (
+from src.scrapper.flows import (
     flow_login,
     flow_get_all_groups,
     flow_get_all_topics_for_group,
