@@ -43,23 +43,24 @@ def flow_get_all_topics_for_group(session: requests.Session, group: str, all_top
     while True:
         soup = BeautifulSoup(resp.text, features='html.parser')
         logging.debug('Parsing out topics')
-        for article_ele in soup.find_all('article', class_='topic'):
+        for article in soup.find_all('article', class_='topic'):
             content = None
-            if article_ele.find('details', class_='topic-text-excerpt'):
-                content = '\n'.join([e.text for e in article_ele.find('details', class_='topic-text-excerpt').find_all('p')])
-            topic_id = article_ele['id'].split('-')[1]
+            if article.find('details', class_='topic-text-excerpt'):
+                content = '\n'.join([e.text for e in article.find('details', class_='topic-text-excerpt').find_all('p')])
+            topic_id = article['id'].split('-')[1]
             topic = Topic(
                 tildes_id=topic_id,
                 group=group,
-                title=article_ele.find('a').text,
-                link=article_ele.find('a')['href'],
-                comments_link=article_ele.find('div', class_='topic-info-comments').find('a')['href'],
+                title=article.find('a').text,
+                link=article.find('a')['href'],
+                comments_link=article.find('div', class_='topic-info-comments').find('a')['href'],
                 content=content,
-                author=article_ele.find('a', class_='link-user').text,
-                submitted=timestamp_to_datetime(article_ele.find('time')['datetime'])
+                author=article.find('a', class_='link-user').text,
+                score=article.find('span', class_='topic-voting-votes').text,
+                submitted=timestamp_to_datetime(article.find('time')['datetime'])
             )
             tags = []
-            for tag_name in [e.find('a').text for e in article_ele.find_all('li', class_='label-topic-tag')]:
+            for tag_name in [e.find('a').text for e in article.find_all('li', class_='label-topic-tag')]:
                 tags.append(Tag(topic=topic, name=tag_name))
             topic.tags = tags
             all_topics.append(topic)
@@ -90,12 +91,22 @@ def flow_get_comments_from_topics(
                 continue
             if article.find('div', class_='is-comment-removed'):
                 continue
+            score = 0
+            vote_button = article.find('a', {'name': 'vote'})
+            unvote_button = article.find('a', {'name': 'unvote'})
+            if vote_button and vote_button.text:
+                if '(' in vote_button.text:
+                    score = int(vote_button.text.replace(' ', '').split('(')[1].strip()[:-1])
+            elif unvote_button and unvote_button.text:
+                if '(' in unvote_button.text:
+                    score = int(unvote_button.text.replace(' ', '').split('(')[1].strip()[:-1])
             comment = Comment(
                 topic=topic,
                 tildes_id=article['id'].split('-')[1],
                 author=article.find('header').find('a')['href'].split('/')[-1],
                 submitted=timestamp_to_datetime(article.find('header').find('time')['datetime']),
-                content=article.find('div', class_='comment-text').text.strip()
+                content=article.find('div', class_='comment-text').text.strip(),
+                score=score
             )
             all_comments.append(comment)
         logging.debug(f'Stored all comments from {url}')

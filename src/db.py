@@ -20,6 +20,7 @@ class Topic(Base):
     comments_link = Column(String)
     author = Column(String)
     submitted = Column(DateTime)
+    score = Column(Integer)
 
     tags = relationship('Tag', back_populates='topic')
     comments = relationship('Comment', back_populates='topic')
@@ -35,6 +36,7 @@ class Topic(Base):
             'comments_link': self.comments_link,
             'author': self.author,
             'submitted': self.submitted,
+            'score': self.score,
             'tags': [tag.name for tag in self.tags]
         }
 
@@ -63,6 +65,7 @@ class Comment(Base):
     author = Column(String)
     submitted = Column(DateTime)
     content = Column(String)
+    score = Column(Integer)
 
     topic = relationship('Topic', back_populates='comments')
 
@@ -72,7 +75,8 @@ class Comment(Base):
             'tildes_id': self.tildes_id,
             'author': self.author,
             'submitted': self.submitted,
-            'content': self.content
+            'content': self.content,
+            'score': self.score
         }
 
 
