@@ -9,7 +9,7 @@ itsdangerous==0.24
 Jinja2==2.10
 MarkupSafe==1.0
 mypy==0.620
-requests==2.19.1
+requests==2.20.0
 six==1.11.0
 SQLAlchemy==1.2.11
 typed-ast==1.1.0
